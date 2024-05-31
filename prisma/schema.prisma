@@ -75,6 +75,24 @@ model Authenticator {
   @@id([userId, credentialID])
 }
 
+model VerificationToken {
+  id      String   @id @default(cuid()) @db.VarChar(25)
+  email   String   @db.VarChar(100)
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model PasswordResetToken {
+  id      String   @id @default(cuid()) @db.VarChar(25)
+  email   String   @db.VarChar(100)
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
 // Store
 model Store {
   id        String   @id @default(cuid()) @db.VarChar(25)

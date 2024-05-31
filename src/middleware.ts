@@ -11,7 +11,6 @@ const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
 	const { nextUrl } = req;
-
 	const isAuthenticated = !!req.auth;
 
 	const isPublicRoute =

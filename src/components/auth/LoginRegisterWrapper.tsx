@@ -13,7 +13,7 @@ import { BackButton } from "@/components/auth/BackButton";
 type LoginRegistarProps = {
 	children: ReactNode;
 	headerLabel: string;
-	description?: string;
+	description?: ReactNode;
 	backButtonLable: string;
 	backButtonHref: string;
 	showSocial?: boolean;
@@ -28,7 +28,7 @@ const LoginRegisterWrapper = ({
 	description
 }: LoginRegistarProps) => {
 	return (
-		<Card className="w-[500px]">
+		<Card className="w-full max-w-[500px]">
 			<CardHeader>
 				<CardTitle className="text-center text-3xl font-bold">
 					{headerLabel}
