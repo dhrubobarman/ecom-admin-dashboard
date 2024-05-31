@@ -5,7 +5,7 @@ import type { NextAuthConfig } from "next-auth";
 import { loginSchema } from "@/schemas";
 import db from "@/lib/prismadb";
 import { getUserByEmail } from "@/data/user";
-import bcrypt from "bcryptjs";
+import { verifyPassword } from "@/lib/helpers";
 
 export default {
 	providers: [
@@ -16,7 +16,7 @@ export default {
 					const { email, password } = validatedFields.data;
 					const user = await getUserByEmail(email);
 					if (!user || !user.password) return null;
-					const isPasswordValid = await bcrypt.compare(password, user.password);
+					const isPasswordValid = await verifyPassword(password, user.password);
 					if (isPasswordValid) return user;
 				}
 				return null;

@@ -3,6 +3,7 @@ import { ModalProvider } from "@/providers/modal-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import type { Metadata } from "next";
 import { Inter as FontSans } from "next/font/google";
+import { Toaster } from "@/components/ui/toaster";
 import "./globals.scss";
 
 const fontSans = FontSans({
@@ -36,6 +37,7 @@ export default function RootLayout({
 				>
 					{children}
 					<ModalProvider />
+					<Toaster />
 				</ThemeProvider>
 			</body>
 		</html>
