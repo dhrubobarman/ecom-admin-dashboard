@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
 	Form,
 	FormControl,
+	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -24,6 +25,11 @@ import { useForm } from "react-hook-form";
 import { FaSpinner } from "react-icons/fa6";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import Link from "next/link";
+import {
+	InputOTP,
+	InputOTPGroup,
+	InputOTPSlot
+} from "@/components/ui/input-otp";
 
 export const LoginForm = () => {
 	const searchParams = useSearchParams();
@@ -35,6 +41,7 @@ export const LoginForm = () => {
 	const [error, setError] = useState<string | undefined>("");
 	const [success, setSuccess] = useState<string | undefined>("");
 	const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+	const [showTowFactor, setShowTwoFactor] = useState(false);
 
 	const toggleViewPassword = () => {
 		setIsPasswordVisible((prev) => !prev);
@@ -43,27 +50,39 @@ export const LoginForm = () => {
 		resolver: zodResolver(loginSchema),
 		defaultValues: {
 			email: "",
-			password: ""
+			password: "",
+			otp: ""
 		}
 	});
 
+	console.log(form.getValues());
+
 	const handleSubmit = async (values: LoginSchema) => {
 		startTransition(() => {
-			login(values).then((data) => {
-				if (data?.error) {
-					toast({
-						title: data.error,
-						variant: "destructive"
-					});
-					setError(data?.error);
-				}
-				if (data?.message) {
-					setSuccess(data?.message);
-					toast({
-						title: data.message
-					});
-				}
-			});
+			login(values)
+				.then((data) => {
+					if (!data) return;
+					if (data.error) {
+						form.reset();
+						toast({
+							title: data.error,
+							variant: "destructive"
+						});
+						setError(data?.error);
+					}
+					if (data.message) {
+						setSuccess(data?.message);
+						toast({
+							title: data.message
+						});
+					}
+					if (data.twoFactor) {
+						setShowTwoFactor(true);
+					}
+				})
+				.catch((error) => {
+					setError("Something went wrong!");
+				});
 		});
 	};
 
@@ -78,64 +97,93 @@ export const LoginForm = () => {
 			<Form {...form}>
 				<form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
 					<div className="space-y-4">
-						<FormField
-							control={form.control}
-							name="email"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Email</FormLabel>
-									<FormControl>
-										<Input
-											disabled={isPending}
-											placeholder="johndoe@mail.com"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="password"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Password</FormLabel>
-									<FormControl>
-										<div className="flex gap-2">
+						<div className={`${showTowFactor ? " hidden" : ""}`}>
+							<FormField
+								control={form.control}
+								name="email"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Email</FormLabel>
+										<FormControl>
 											<Input
 												disabled={isPending}
-												placeholder="*********"
-												type={isPasswordVisible ? "text" : "password"}
+												placeholder="johndoe@mail.com"
 												{...field}
 											/>
-											<Button
-												size={"icon"}
-												type="button"
-												variant={"outline"}
-												className=" flex-shrink-0"
-												onClick={toggleViewPassword}
-											>
-												{isPasswordVisible ? (
-													<FaEyeSlash className="size-4" />
-												) : (
-													<FaEye className="size-4" />
-												)}
-											</Button>
-										</div>
-									</FormControl>
-									<Button
-										variant={"link"}
-										asChild
-										size={"sm"}
-										className="px-0 font-normal"
-									>
-										<Link href="/auth/reset">Forgot password?</Link>
-									</Button>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
+										</FormControl>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+							<FormField
+								control={form.control}
+								name="password"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>Password</FormLabel>
+										<FormControl>
+											<div className="flex gap-2">
+												<Input
+													disabled={isPending}
+													placeholder="*********"
+													type={isPasswordVisible ? "text" : "password"}
+													{...field}
+												/>
+												<Button
+													size={"icon"}
+													type="button"
+													variant={"outline"}
+													className=" flex-shrink-0"
+													onClick={toggleViewPassword}
+												>
+													{isPasswordVisible ? (
+														<FaEyeSlash className="size-4" />
+													) : (
+														<FaEye className="size-4" />
+													)}
+												</Button>
+											</div>
+										</FormControl>
+										<Button
+											variant={"link"}
+											asChild
+											size={"sm"}
+											className="px-0 font-normal"
+										>
+											<Link href="/auth/reset">Forgot password?</Link>
+										</Button>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</div>
+						<div className={`${showTowFactor ? " " : "hidden"}`}>
+							<FormField
+								control={form.control}
+								name="otp"
+								render={({ field }) => (
+									<FormItem>
+										<FormLabel>One-Time Password</FormLabel>
+										<FormControl>
+											<InputOTP maxLength={6} {...field} disabled={isPending}>
+												<InputOTPGroup>
+													<InputOTPSlot index={0} />
+													<InputOTPSlot index={1} />
+													<InputOTPSlot index={2} />
+													<InputOTPSlot index={3} />
+													<InputOTPSlot index={4} />
+													<InputOTPSlot index={5} />
+												</InputOTPGroup>
+											</InputOTP>
+										</FormControl>
+										<FormDescription>
+											Please enter the one-time password sent to your email.
+										</FormDescription>
+										<FormMessage />
+									</FormItem>
+								)}
+							/>
+						</div>
 					</div>
 					<FormError
 						message={error || urlErrorMsg}
@@ -143,7 +191,7 @@ export const LoginForm = () => {
 					/>
 					<FormSuccess message={success} onClose={() => setSuccess("")} />
 					<Button disabled={isPending} className="mt-4 w-full" type="submit">
-						Login
+						{showTowFactor ? "Confirm" : "Login"}
 						{isPending && <FaSpinner className="ml-2 animate-spin" />}
 					</Button>
 				</form>

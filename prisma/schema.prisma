@@ -21,17 +21,19 @@ enum UserRole {
 }
 
 model User {
-  id            String          @id @default(cuid()) @db.VarChar(25)
-  name          String?         @db.VarChar(60)
-  username      String?         @unique @db.VarChar(80)
-  email         String?         @unique @db.VarChar(100)
-  emailVerified DateTime?
-  image         String?
-  password      String?         @db.VarChar(73)
-  role          UserRole        @default(USER)
-  Account       Account?
+  id                    String                 @id @default(cuid()) @db.VarChar(25)
+  name                  String?                @db.VarChar(60)
+  username              String?                @unique @db.VarChar(80)
+  email                 String?                @unique @db.VarChar(100)
+  emailVerified         DateTime?
+  image                 String?
+  password              String?                @db.VarChar(73)
+  role                  UserRole               @default(USER)
+  Account               Account?
   // Optional for WebAuthn support
-  Authenticator Authenticator[]
+  Authenticator         Authenticator[]
+  isTwoFactorEnabled    Boolean                @default(false)
+  twoFactorConfirmation TwoFactorConfirmation?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -91,6 +93,23 @@ model PasswordResetToken {
   expires DateTime
 
   @@unique([email, token])
+}
+
+model TwoFactorToken {
+  id      String   @id @default(cuid()) @db.VarChar(25)
+  email   String   @db.VarChar(100)
+  token   String   @unique
+  expires DateTime
+
+  @@unique([email, token])
+}
+
+model TwoFactorConfirmation {
+  id     String @id @default(cuid()) @db.VarChar(25)
+  userId String @db.VarChar(25)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
 }
 
 // Store

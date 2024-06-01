@@ -33,7 +33,6 @@ export const ResetForm = () => {
 	});
 
 	const handleSubmit = async (values: ResetPasswordSchema) => {
-		console.log(values);
 		startTransition(() => {
 			resetPassword(values).then((data) => {
 				if (data?.error) {
