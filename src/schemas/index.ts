@@ -4,7 +4,8 @@ export const loginSchema = z.object({
 	email: z.string().email({
 		message: "Please enter a valid email"
 	}),
-	password: z.string().min(1, "Password is required")
+	password: z.string().min(1, "Password is required"),
+	otp: z.string().optional()
 });
 export type LoginSchema = z.infer<typeof loginSchema>;
 

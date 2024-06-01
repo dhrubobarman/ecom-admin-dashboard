@@ -2,6 +2,8 @@
 
 import { signIn } from "@/auth";
 import { getPasswordResetTokenByToken } from "@/data/password-reset-token";
+import { getTwoFactorConfirmationByUserId } from "@/data/two-factor-confirmation";
+import { getTwoFactorTokenByEmail } from "@/data/two-factor-token";
 import { getUserByEmail } from "@/data/user";
 import { getVerificationTokenByToken } from "@/data/verification-token";
 import {
@@ -9,11 +11,16 @@ import {
 	signInErrorMessages,
 	verifyPassword
 } from "@/lib/helpers";
-import { sendResetPasswordEmail, sendVerificationEmail } from "@/lib/mail";
+import {
+	sendResetPasswordEmail,
+	sendVerificationEmail,
+	sendTwoFactorTokenEmail
+} from "@/lib/mail";
 import db from "@/lib/prismadb";
 import {
 	generatePasswordResetToken,
-	generateVerificationToken
+	generateVerificationToken,
+	generateTwoFactorToken
 } from "@/lib/tokens";
 import { DEFAULT_LOGIN_REDIRECT } from "@/routes";
 import {
@@ -34,22 +41,53 @@ export const login = async (values: LoginSchema) => {
 	if (!validatedFields.success) {
 		return {
 			error: "Invalid fields!",
-			message: ""
+			message: "",
+			twoFactor: false
 		};
 	}
 
-	const { email, password } = validatedFields.data;
+	const { email, password, otp } = validatedFields.data;
 	const dbUser = await getUserByEmail(email);
 
 	if (!dbUser || !dbUser.email || !dbUser.password) {
-		return { error: "Invalid credentials!", message: "" };
+		return { error: "Invalid credentials!", message: "", twoFactor: false };
 	}
 
 	if (!dbUser.emailVerified) {
 		const verificationToken = await generateVerificationToken(dbUser.email);
 		const isPasswordValid = await verifyPassword(password, dbUser.password);
 		if (!isPasswordValid) return { error: "Invalid credentials!" };
-		return sendVerificationEmail(dbUser, verificationToken.token);
+		const msg = await sendVerificationEmail(dbUser, verificationToken.token);
+		return { ...msg, twoFactor: false };
+	}
+
+	if (dbUser.isTwoFactorEnabled && dbUser.email) {
+		if (otp) {
+			const twoFactorToken = await getTwoFactorTokenByEmail(dbUser.email);
+			if (!twoFactorToken) return { error: "Invalid OTP!" };
+			if (twoFactorToken.token !== otp) {
+				return { error: "Invalid OTP!" };
+			}
+			const hasExpired = new Date(twoFactorToken.expires) < new Date();
+			if (hasExpired) return { error: "OTP has expired!" };
+			await db.twoFactorToken.delete({
+				where: { id: twoFactorToken.id }
+			});
+			let confirmation = await getTwoFactorConfirmationByUserId(dbUser.id);
+
+			if (confirmation) {
+				await db.twoFactorConfirmation.delete({
+					where: { id: confirmation.id }
+				});
+			}
+			await db.twoFactorConfirmation.create({
+				data: { userId: dbUser.id }
+			});
+		} else {
+			const twoFactorToken = await generateTwoFactorToken(dbUser.email);
+			const msg = await sendTwoFactorTokenEmail(dbUser, twoFactorToken.token);
+			return { ...msg, twoFactor: true };
+		}
 	}
 
 	try {
@@ -61,7 +99,8 @@ export const login = async (values: LoginSchema) => {
 	} catch (error) {
 		if (error instanceof AuthError) {
 			return {
-				error: signInErrorMessages(error.type as SignInPageErrorParam)
+				error: signInErrorMessages(error.type as SignInPageErrorParam),
+				twoFactor: false
 			};
 		}
 		throw error;
