@@ -55,8 +55,6 @@ export const LoginForm = () => {
 		}
 	});
 
-	console.log(form.getValues());
-
 	const handleSubmit = async (values: LoginSchema) => {
 		startTransition(() => {
 			login(values)

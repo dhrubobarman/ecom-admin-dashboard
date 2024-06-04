@@ -1,6 +1,6 @@
 "use server";
 
-import { signIn } from "@/auth";
+import { signIn, signOut } from "@/auth";
 import { getPasswordResetTokenByToken } from "@/data/password-reset-token";
 import { getTwoFactorConfirmationByUserId } from "@/data/two-factor-confirmation";
 import { getTwoFactorTokenByEmail } from "@/data/two-factor-token";
@@ -193,4 +193,27 @@ export const newPassword = async (
 		}
 	});
 	return { message: "Password updated successfully!" };
+};
+
+export const logout = async () => {
+	return await signOut();
+};
+
+export const toggleTwoFactor = async (userId: string, isEnabled: boolean) => {
+	const dbUser = await db.user.findUnique({ where: { id: userId } });
+	if (!dbUser) return { error: "User not found!" };
+	if (!dbUser.password) return { error: "Cannot enable 2FA on this user" };
+	try {
+		await db.user.update({
+			where: { id: userId },
+			data: { isTwoFactorEnabled: isEnabled }
+		});
+		if (isEnabled) {
+			return { message: "2FA enabled successfully!" };
+		} else {
+			return { message: "2FA disabled successfully!" };
+		}
+	} catch (error) {
+		return { error: "Something went wrong!" };
+	}
 };
